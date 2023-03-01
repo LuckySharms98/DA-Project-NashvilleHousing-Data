@@ -68,7 +68,7 @@ SELECT DISTINCT SoldAsVacant, COUNT(*)
 FROM HousingData
 GROUP BY SoldAsVacant;
 
---case statement
+--case statement testing
 
 SELECT SoldAsVacant,
 	CASE
@@ -90,6 +90,37 @@ SET SoldAsVacant = (CASE
 ----------------------------------------------------------------------------------------------
 --Remove Duplicates
 
+--We use the ROW_NUMBER() function and partition over a few fields to assign numeric values to duplicate instances of these fields. 
+--But we also need to put it into a CTE!
+
+WITH RowNumCTE AS(
+SELECT *,
+	ROW_NUMBER() OVER (
+	PARTITION BY ParcelID,
+				PropertyAddress,
+				SalePrice,
+				SaleDateConverted,
+				LegalReference
+				ORDER BY 
+					UniqueID
+					) row_num
+
+FROM HousingData
+)
+
+DELETE
+FROM RowNumCTE
+WHERE row_num > 1
+
+--While I agree that best practice is to instead store this data in a temp table, I removed it completely for the purpose of this project
 
 ----------------------------------------------------------------------------------------------
 --Delete Unused Columns
+SELECT *
+FROM HousingData
+
+--We don't need PropertyAddress, OwnerAddress, and TaxDistrict
+
+ALTER TABLE HousingData
+DROP COLUMN PropertyAddress, OwnerAddress, TaxDistrict
+
