@@ -47,30 +47,49 @@ FROM HousingData
 
 ----------------------------------------------------------------------------------------------
 
---Break out Address into Invidual Columns (Address, City, State)
-SELECT PropertyAddress
-FROM HousingData
-
-SELECT
-SUBSTRING(PropertyAddress,1,CHARINDEX(',',PropertyAddress) - 1) AS Address,
-SUBSTRING(PropertyAddress,CHARINDEX(',',PropertyAddress)+1,LEN(PropertyAddress)) AS City 
-FROM HousingData
-
+--Break out Address into Invidual Columns (PropertyStreet,PropertyCity, PropertyState)
 --Now to add these as columns
 ALTER TABLE HousingData
-ADD Street nvarchar(255), City nvarchar(255)
+ADD OwnerStreet nvarchar(255), OwnerCity nvarchar(255), OwnerState nvarchar(255);
 
+--We can use PARSENAME by replacing the period with a , as the delimiter 
 UPDATE HousingData
-SET Street = SUBSTRING(PropertyAddress,1,CHARINDEX(',',PropertyAddress) - 1),
-City = SUBSTRING(PropertyAddress,CHARINDEX(',',PropertyAddress)+1,LEN(PropertyAddress));
+SET OwnerStreet = PARSENAME(REPLACE(OwnerAddress,',','.'), 3),
+OwnerCity = PARSENAME(REPLACE(OwnerAddress,',','.'), 2),
+OwnerState = PARSENAME(REPLACE(OwnerAddress,',','.'), 1)
 
 SELECT*
 FROM HousingData;
 
---Change Yes and No in 'Sold As Vacant' field to Y and N
+----------------------------------------------------------------------------------------------
+--Change Y and N in 'Sold As Vacant' field to Yes and No
+
+SELECT DISTINCT SoldAsVacant, COUNT(*)
+FROM HousingData
+GROUP BY SoldAsVacant;
+
+--case statement
+
+SELECT SoldAsVacant,
+	CASE
+		WHEN SoldAsVacant = 'Y' THEN 'Yes'
+		WHEN SoldAsVacant = 'N' THEN 'No'
+		ELSE SoldAsVacant --keep it as same
+	END
+FROM HousingData;
+
+--ADD TO TABLE
+UPDATE HousingData
+SET SoldAsVacant = (CASE
+		WHEN SoldAsVacant = 'Y' THEN 'Yes'
+		WHEN SoldAsVacant = 'N' THEN 'No'
+		ELSE SoldAsVacant --keep it as same
+	END)
 
 
+----------------------------------------------------------------------------------------------
 --Remove Duplicates
 
 
+----------------------------------------------------------------------------------------------
 --Delete Unused Columns
