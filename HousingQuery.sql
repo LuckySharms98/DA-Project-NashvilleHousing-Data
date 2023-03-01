@@ -23,28 +23,49 @@ SELECT *
 FROM HousingData
 ORDER BY ParcelID;
 
---In the original dataset, some rows that have different UniqueID fields have duplicate ParcelID values, and thus duplicates in every other field
-SELECT ParcelID, COUNT(*) AS dup_count
-FROM HousingData
-GROUP BY ParcelID
-HAVING COUNT(*) > 1
-ORDER BY ParcelID;
+--We need to take care of these NULL values. Let's do a self join on PropertyAddress and ParcelID to find what needs to fill these empty spaces
 
---We can do a simple join with this table on our original table to uniquely identify these duplicates 
-
-SELECT a.ParcelID, a.PropertyAddress, b.ParcelID, b.PropertyAddress, ISNULL
+SELECT a.ParcelID, a.PropertyAddress, b.ParcelID, b.PropertyAddress, ISNULL(a.PropertyAddress, b.PropertyAddress)
 FROM HousingData a
 JOIN HousingData b
-ON a.ParcelID = b.ParcelID
-AND a.[UniqueID ] <> b.[UniqueID ];
+	ON a.ParcelID = b.ParcelID
+	AND a.[UniqueID ] <> b.[UniqueID ]
+WHERE a.PropertyAddress IS NULL;
 
+--Use update to fill in the NULL value columns with PropertyAddress Data
+UPDATE a
+SET PropertyAddress = ISNULL(a.PropertyAddress, b.PropertyAddress)
+FROM HousingData a
+JOIN HousingData b
+	ON a.ParcelID = b.ParcelID
+	AND a.[UniqueID ] <> b.[UniqueID ]
+WHERE a.PropertyAddress IS NULL;
 
+--We confirm that the NULLS were filled by running the below query
+SELECT *
+FROM HousingData
 
-
-
+----------------------------------------------------------------------------------------------
 
 --Break out Address into Invidual Columns (Address, City, State)
+SELECT PropertyAddress
+FROM HousingData
 
+SELECT
+SUBSTRING(PropertyAddress,1,CHARINDEX(',',PropertyAddress) - 1) AS Address,
+SUBSTRING(PropertyAddress,CHARINDEX(',',PropertyAddress)+1,LEN(PropertyAddress)) AS City 
+FROM HousingData
+
+--Now to add these as columns
+ALTER TABLE HousingData
+ADD Street nvarchar(255), City nvarchar(255)
+
+UPDATE HousingData
+SET Street = SUBSTRING(PropertyAddress,1,CHARINDEX(',',PropertyAddress) - 1),
+City = SUBSTRING(PropertyAddress,CHARINDEX(',',PropertyAddress)+1,LEN(PropertyAddress));
+
+SELECT*
+FROM HousingData;
 
 --Change Yes and No in 'Sold As Vacant' field to Y and N
 
